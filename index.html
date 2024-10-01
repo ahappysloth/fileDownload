@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>File Downloader</title>
+    <!-- Include Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Roboto', Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+            color: #333;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        #status {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        /* Spinner styles */
+        .spinner {
+            border: 6px solid #e0e0e0; /* Light grey */
+            border-top: 6px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Link styles */
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Downloading your file...</h1>
+    <p id="status">Preparing to download...</p>
+    
+    <!-- Loading spinner -->
+    <div class="spinner" id="loadingSpinner"></div>
+
+    <script>
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileUrl = urlParams.get('fileUrl');  // Get the file URL from the query parameter
+
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const statusElement = document.getElementById('status');
+            loadingSpinner.style.display = 'block';  // Show the loading spinner
+
+            if (fileUrl) {
+                // Extract the file name from the URL
+                const fileName = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
+
+                // Fetch the file as a blob (binary data)
+                fetch(fileUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.blob();  // Convert response to a binary blob
+                    })
+                    .then(blob => {
+                        loadingSpinner.style.display = 'none';  // Hide the loading spinner once done
+                        const link = document.createElement('a');  // Create a hidden download link
+                        link.href = URL.createObjectURL(blob);  // Create a URL for the file
+                        link.setAttribute('download', fileName);  // Use the original file name
+                        document.body.appendChild(link);  // Append the link to the body
+                        link.click();  // Trigger the download
+                        link.remove();  // Clean up by removing the link
+
+                        // Update status with a clickable link in case automatic download doesn't work
+                        statusElement.innerHTML = 'If your download did not start automatically, <a href="' + link.href + '" download="' + fileName + '">click here</a>.';
+                        statusElement.style.fontSize = '1em';
+
+                        // Wait a short delay and attempt to close the tab
+                        setTimeout(function() {
+                            window.close();  // Close the current tab if possible
+                        }, 5000);  // Adjust the delay as needed
+                    })
+                    .catch(error => {
+                        loadingSpinner.style.display = 'none';  // Hide the spinner in case of error
+                        statusElement.textContent = 'Error fetching the file. Check the URL.';
+                        statusElement.style.color = 'red';
+                    });
+            } else {
+                loadingSpinner.style.display = 'none';  // Hide the spinner if no URL is provided
+                statusElement.textContent = 'No file URL provided.';
+                statusElement.style.color = 'red';
+            }
+        }
+    </script>
+</body>
+</html>
