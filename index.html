@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Download File with Zipping</title>
+    <!-- Include JSZip Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <style>
+        /* Simple spinner styles */
+        .spinner {
+            border: 6px solid #f3f3f3; /* Light grey */
+            border-top: 6px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>File Download Trigger with Zipping</h1>
+    <p id="status">Preparing to download...</p>
+    
+    <!-- Loading spinner -->
+    <div class="spinner" id="loadingSpinner"></div>
+
+    <script>
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileUrl = urlParams.get('fileUrl');  // Get the file URL from the query parameter
+
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            loadingSpinner.style.display = 'block';  // Show the loading spinner
+
+            if (fileUrl) {
+                // Extract the file name from the URL
+                const fileName = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
+
+                // Fetch the image or file as a blob (binary data)
+                fetch(fileUrl)
+                    .then(response => response.blob())  // Convert response to a binary blob
+                    .then(blob => {
+                        const zip = new JSZip();  // Create a new JSZip instance
+                        zip.file(fileName, blob, { binary: true });  // Add the binary file to the zip with the correct filename
+
+                        // Generate the zip file and trigger download
+                        zip.generateAsync({ type: "blob" }).then(function(content) {
+                            loadingSpinner.style.display = 'none';  // Hide the loading spinner once done
+                            const zipLink = document.createElement('a');  // Create a hidden download link
+                            zipLink.href = URL.createObjectURL(content);  // Create a URL for the zip
+                            zipLink.setAttribute('download', 'files.zip');  // Name the downloaded zip as "files.zip"
+                            document.body.appendChild(zipLink);  // Append the link to the body
+                            zipLink.click();  // Trigger the download
+                            zipLink.remove();  // Clean up by removing the link
+                            
+                            // Wait a short delay and attempt to close the tab
+                            setTimeout(function() {
+                                window.close();  // Close the current tab if opened by JavaScript
+                            }, 2000);  // Adjust the delay as needed
+                        });
+                    })
+                    .catch(error => {
+                        loadingSpinner.style.display = 'none';  // Hide the spinner in case of error
+                        document.getElementById('status').textContent = 'Error fetching the file. Check the URL.';
+                    });
+            } else {
+                loadingSpinner.style.display = 'none';  // Hide the spinner if no URLs are provided
+                document.getElementById('status').textContent = 'No file URL provided.';
+            }
+        }
+    </script>
+</body>
+</html>
