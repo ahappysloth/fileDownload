@@ -92,7 +92,7 @@
                         // Wait a short delay and attempt to close the tab
                         setTimeout(function() {
                             window.close();  // Close the current tab if possible
-                        }, 5000);  // Adjust the delay as needed
+                        }, 200);  // Adjust the delay as needed
                     })
                     .catch(error => {
                         loadingSpinner.style.display = 'none';  // Hide the spinner in case of error
