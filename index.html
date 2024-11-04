@@ -49,7 +49,7 @@
     </style>
 </head>
 <body>
-    <h1>Downloading Your File...</h1>
+    <h1>Downloading your file...</h1>
     <p id="status">Preparing to download...</p>
     
     <!-- Loading spinner -->
@@ -66,33 +66,39 @@
 
             if (fileUrl) {
                 // Extract the file name from the URL
-                const fileName = decodeURIComponent(fileUrl.substring(fileUrl.lastIndexOf('/') + 1));
+                const fileName = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
 
-                // Create a hidden download link
-                const link = document.createElement('a');  
-                link.href = fileUrl;  // Direct link to the file
-                link.setAttribute('download', fileName);  // Suggest the original file name
-                link.style.display = 'none';
-                document.body.appendChild(link);  // Append the link to the body
-                link.click();  // Trigger the download
-                // No need to remove the link immediately
+                // Fetch the file as a blob (binary data)
+                fetch(fileUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.blob();  // Convert response to a binary blob
+                    })
+                    .then(blob => {
+                        loadingSpinner.style.display = 'none';  // Hide the loading spinner once done
+                        const link = document.createElement('a');  // Create a hidden download link
+                        link.href = URL.createObjectURL(blob);  // Create a URL for the file
+                        link.setAttribute('download', fileName);  // Use the original file name
+                        document.body.appendChild(link);  // Append the link to the body
+                        link.click();  // Trigger the download
+                        link.remove();  // Clean up by removing the link
 
-                loadingSpinner.style.display = 'none';  // Hide the loading spinner once done
+                        // Update status with a clickable link in case automatic download doesn't work
+                        statusElement.innerHTML = 'If your download did not start automatically, <a href="' + link.href + '" download="' + fileName + '">click here</a>.';
+                        statusElement.style.fontSize = '1em';
 
-                // Update status with a clickable link in case automatic download doesn't work
-                statusElement.innerHTML = 'If your download did not start automatically, <a href="' + fileUrl + '" download="' + fileName + '">click here</a>.';
-                statusElement.style.fontSize = '1em';
-
-                // Attempt to close the window after a delay
-                setTimeout(function() {
-                    // Check if the window can be closed
-                    if (window.opener && !window.opener.closed) {
-                        window.close();  // Close the current tab if possible
-                    } else {
-                        // If window.close() is not allowed, inform the user
-                        statusElement.innerHTML += '<br><br>You can close this window manually.';
-                    }
-                }, 1500);  // 1.5 seconds delay to ensure download initiation
+                        // Wait a short delay and attempt to close the tab
+                        setTimeout(function() {
+                            window.close();  // Close the current tab if possible
+                        }, 200);  // Adjust the delay as needed
+                    })
+                    .catch(error => {
+                        loadingSpinner.style.display = 'none';  // Hide the spinner in case of error
+                        statusElement.textContent = 'Error fetching the file. Check the URL.';
+                        statusElement.style.color = 'red';
+                    });
             } else {
                 loadingSpinner.style.display = 'none';  // Hide the spinner if no URL is provided
                 statusElement.textContent = 'No file URL provided.';
