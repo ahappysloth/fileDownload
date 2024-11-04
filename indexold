@@ -3,24 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>File Downloader</title>
-    <!-- Include JSZip Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <!-- Include Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
     <style>
-        /* Simple spinner styles */
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Roboto', Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+            color: #333;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        #status {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        /* Spinner styles */
         .spinner {
-            border: 6px solid #f3f3f3; /* Light grey */
+            border: 6px solid #e0e0e0; /* Light grey */
             border-top: 6px solid #3498db; /* Blue */
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            display: none; /* Hidden by default */
             margin: 20px auto;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Link styles */
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -37,42 +61,48 @@
             const fileUrl = urlParams.get('fileUrl');  // Get the file URL from the query parameter
 
             const loadingSpinner = document.getElementById('loadingSpinner');
+            const statusElement = document.getElementById('status');
             loadingSpinner.style.display = 'block';  // Show the loading spinner
 
             if (fileUrl) {
                 // Extract the file name from the URL
                 const fileName = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
 
-                // Fetch the image or file as a blob (binary data)
+                // Fetch the file as a blob (binary data)
                 fetch(fileUrl)
-                    .then(response => response.blob())  // Convert response to a binary blob
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.blob();  // Convert response to a binary blob
+                    })
                     .then(blob => {
-                        const zip = new JSZip();  // Create a new JSZip instance
-                        zip.file(fileName, blob, { binary: true });  // Add the binary file to the zip with the correct filename
+                        loadingSpinner.style.display = 'none';  // Hide the loading spinner once done
+                        const link = document.createElement('a');  // Create a hidden download link
+                        link.href = URL.createObjectURL(blob);  // Create a URL for the file
+                        link.setAttribute('download', fileName);  // Use the original file name
+                        document.body.appendChild(link);  // Append the link to the body
+                        link.click();  // Trigger the download
+                        link.remove();  // Clean up by removing the link
 
-                        // Generate the zip file and trigger download
-                        zip.generateAsync({ type: "blob" }).then(function(content) {
-                            loadingSpinner.style.display = 'none';  // Hide the loading spinner once done
-                            const zipLink = document.createElement('a');  // Create a hidden download link
-                            zipLink.href = URL.createObjectURL(content);  // Create a URL for the zip
-                            zipLink.setAttribute('download', 'files.zip');  // Name the downloaded zip as "files.zip"
-                            document.body.appendChild(zipLink);  // Append the link to the body
-                            zipLink.click();  // Trigger the download
-                            zipLink.remove();  // Clean up by removing the link
-                            
-                            // Wait a short delay and attempt to close the tab
-                            setTimeout(function() {
-                                window.close();  // Close the current tab if opened by JavaScript
-                            }, 2000);  // Adjust the delay as needed
-                        });
+                        // Update status with a clickable link in case automatic download doesn't work
+                        statusElement.innerHTML = 'If your download did not start automatically, <a href="' + link.href + '" download="' + fileName + '">click here</a>.';
+                        statusElement.style.fontSize = '1em';
+
+                        // Wait a short delay and attempt to close the tab
+                        setTimeout(function() {
+                            window.close();  // Close the current tab if possible
+                        }, 200);  // Adjust the delay as needed
                     })
                     .catch(error => {
                         loadingSpinner.style.display = 'none';  // Hide the spinner in case of error
-                        document.getElementById('status').textContent = 'Error fetching the file. Check the URL.';
+                        statusElement.textContent = 'Error fetching the file. Check the URL.';
+                        statusElement.style.color = 'red';
                     });
             } else {
-                loadingSpinner.style.display = 'none';  // Hide the spinner if no URLs are provided
-                document.getElementById('status').textContent = 'No file URL provided.';
+                loadingSpinner.style.display = 'none';  // Hide the spinner if no URL is provided
+                statusElement.textContent = 'No file URL provided.';
+                statusElement.style.color = 'red';
             }
         }
     </script>
